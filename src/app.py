@@ -1,10 +1,15 @@
 from src.common import WrongNumberOfKeysError, WrongParameterTypeError
 from src.selenium.GmailHandler.Login import Login
 from src.selenium.GmailHandler.Find_Unread_Emails import FindUnreadEmails
-from src.selenium.GmailHandler.Mail_Handler import MailHandler
+from src.selenium.GmailHandler.GmailHandler import GmailHandler
+from src.selenium.RegisterHandler.Register import Register
 from src.selenium.common import DriverCommon
+from src.xlsx.XLSXHandler import XLSXHandler
+from src.common import FileHandler, HashableDict
+from src.mail.MailSender import MailSender
 from typing import Dict
 import argparse
+import time
 import json
 import os
 
@@ -14,7 +19,6 @@ class App:
         self.options = options
 
     def run(self):
-
         driver_options = DriverCommon.prepare_chrome_options(
             self.options['headless'],
             self.options['working_directory']
@@ -26,10 +30,34 @@ class App:
             'Password': self.options['gmail_account_password']
         })
 
-        unread_mails = FindUnreadEmails.execute(driver, self.options['sender_email'])
-        MailHandler.fetch_all_xlsx_files(driver, unread_mails)
+        while True:
+            if unread_mails := FindUnreadEmails.execute(driver, self.options['sender_email']):
+                GmailHandler.fetch_all_xlsx_files(driver, unread_mails)
 
-        driver.quit()
+                valid_files, not_valid_files = XLSXHandler.validate_files(self.options['working_directory'])
+                valid_users, not_valid_users = XLSXHandler.fetch_new_users(valid_files)
+
+                DriverCommon.open_new_tab(driver, self.options['registration_website'])
+
+                registration_statuses = {
+                    HashableDict(user): Register.execute(driver, user) for user in valid_users
+                }
+
+                DriverCommon.close_current_tab(driver)
+
+                MailSender(MailSender.create_mail(
+                    registration_statuses, XLSXHandler.filter_empty_rows(not_valid_users), not_valid_files
+                )).send(
+                    self.options['gmail_account_name'],
+                    self.options['gmail_account_password'],
+                    self.options['sender_email']
+                )
+
+                FileHandler.clear_directory(self.options['working_directory'])
+
+            time.sleep(30)
+
+            GmailHandler.refresh(driver)
 
 
 def parse_arguments() -> Dict[str, str or bool]:
@@ -40,6 +68,7 @@ def parse_arguments() -> Dict[str, str or bool]:
             "gmail_account_password": str,
             "working_directory": str,
             "sender_email": str,
+            "registration_website": str,
             "headless": bool
         }
 

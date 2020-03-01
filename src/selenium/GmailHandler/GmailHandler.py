@@ -3,7 +3,7 @@ from typing import List
 import time
 
 
-class MailHandler:
+class GmailHandler:
     @staticmethod
     def read_mail(driver: Chrome, mail_id: str):
         # Navigate the target mail and open it
@@ -23,8 +23,14 @@ class MailHandler:
         time.sleep(2)
 
     @staticmethod
+    def refresh(driver: Chrome):
+        # Navigate the "Refresh" button and click it
+        driver.get('https://www.gmail.com')
+        time.sleep(2)
+
+    @staticmethod
     def fetch_all_xlsx_files(driver: Chrome, mail_ids: List[str]):
         for unread_email_id in mail_ids:
-            MailHandler.read_mail(driver, unread_email_id)
-            MailHandler.download_attachment(driver)
-            MailHandler.return_to_mail_list(driver)
+            GmailHandler.read_mail(driver, unread_email_id)
+            GmailHandler.download_attachment(driver)
+            GmailHandler.return_to_mail_list(driver)
