@@ -1,4 +1,5 @@
 from typing import List
+import random
 import glob
 import os
 
@@ -31,4 +32,4 @@ class FileHandler:
 
 class HashableDict(dict):
     def __hash__(self):
-        return hash(tuple(sorted(self.items())))
+        return hash(tuple(sorted(self.items())) + (random.randint(0, 100), random.randint(0, 100)))

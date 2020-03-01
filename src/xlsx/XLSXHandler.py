@@ -40,6 +40,4 @@ class XLSXHandler:
 
     @staticmethod
     def filter_empty_rows(data_frame: List) -> List:
-        print(data_frame)
-        print(x := [row for row in data_frame if not all(type(data) == float for data in row.values())])
-        return x
+        return [row for row in data_frame if not all(type(data) == float for data in row.values())]
